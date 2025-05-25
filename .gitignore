@@ -23,3 +23,5 @@ talk-*.tar
 /tmp/
 
 /.elixir_ls/
+
+/user_data/
