@@ -16,7 +16,7 @@ defmodule Talk.Application do
       {Bandit, plug: Talk.Router, scheme: :http, port: port},
       {Talk.QueueSupervisor, []},
       {Talk.Websocket.ClientSupervisor, []},
-      {Task, fn -> start_websocket_clients(servers) end}
+      {Task, fn -> init(servers) end}
     ]
 
     Logger.info("Starting server #{server_id}")
@@ -25,7 +25,9 @@ defmodule Talk.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp start_websocket_clients(servers) do
+  defp init(servers) do
+    File.mkdir("./user_data")
+
     servers
     |> Enum.each(fn {client_server_id, client_server_addr} ->
       Talk.QueueSupervisor.start_child(client_server_id)
