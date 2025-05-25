@@ -126,7 +126,9 @@ defmodule Talk.Websocket.Client do
     end
   end
 
-  def handle_cast({:send, _message}, state) do
+  def handle_cast({:send_frame, frame}, state) do
+    Talk.Queue.put(state.client_server_id, frame)
+
     Logger.info("WebSocket not ready yet")
     {:noreply, state}
   end
@@ -156,6 +158,7 @@ defmodule Talk.Websocket.Client do
     case Mint.WebSocket.new(state.conn, ref, state.status, state.headers) do
       {:ok, conn, websocket} ->
         schedule_heartbeat()
+        send_messages_from_queue(state.client_server_id)
         Logger.info("WebSocket connection established!")
         %{state | conn: conn, websocket: websocket}
 
@@ -210,6 +213,13 @@ defmodule Talk.Websocket.Client do
 
   defp schedule_heartbeat do
     Process.send_after(self(), :heartbeat, 30_000)
+  end
+
+  defp send_messages_from_queue(client_server_id) do
+    Talk.Queue.pop_all(client_server_id)
+    |> Enum.each(fn frame ->
+      send_frame(client_server_id, frame)
+    end)
   end
 
   defp via(client_server_id) do
